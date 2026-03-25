@@ -7,7 +7,8 @@ pub(crate) struct SongData {
     year: i32,
     genre: String,
     album: String,
-    album_artist: TypeOfArtis,
+    album_artist: String,
+    type_of_artist: TypeOfArtis,
 }
 
 pub(crate) enum TypeOfArtis {
