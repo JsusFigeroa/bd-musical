@@ -6,7 +6,7 @@ pub(crate) fn mine_dir(dir: String) -> Vec<SongData> {
     let mut songs_vec = Vec::new();
     let walker = WalkDir::new(dir)
         .into_iter()
-        .filter_entry(|e| !is_hidden(e))
+        .filter_entry(|e| if e.depth() == 0 { true } else { !is_hidden(e) })
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter(|e| {
@@ -73,4 +73,37 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .to_str()
         .map(|s| s.starts_with("."))
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+
+    use super::*;
+    use assert2::check;
+    use tempfile::Builder;
+    #[test]
+    pub fn test_miner() {
+        let temp_dir = Builder::new()
+            .prefix("directorio_temporal")
+            .tempdir()
+            .unwrap();
+        let path = temp_dir.path().join("subdir").join("otherSubDir");
+        std::fs::create_dir_all(&path).unwrap();
+        let file_path = &path.join("cancion.mp3");
+        std::fs::File::create(&file_path).unwrap();
+        let mut tag = Tag::new();
+        tag.set_title("Una canción triste");
+        tag.set_year(2013);
+        tag.set_album("Album triste");
+        tag.write_to_path(&file_path, Version::Id3v24).unwrap();
+        let songs = mine_dir(temp_dir.path().to_str().unwrap().to_string());
+        let song = songs[0].clone();
+        println!("La ruta de la canción es {}", song.path.to_string());
+        let song_path = Path::new(&song.path);
+        check!(song_path.is_absolute());
+        check!(song.title == "Una canción triste".to_string());
+        check!(song.year == 2013);
+        check!(song.album == "Album triste".to_string());
+    }
 }
