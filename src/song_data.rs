@@ -1,15 +1,17 @@
 use bon::Builder;
-#[derive(Builder)]
+#[derive(Builder, Clone)]
 pub(crate) struct SongData {
-    path: String,
-    title: String,
-    num_track: u32,
-    year: i32,
-    genre: String,
-    album: String,
-    album_artist: TypeOfArtis,
+    pub path: String,
+    pub title: String,
+    pub num_track: u32,
+    pub year: i32,
+    pub genre: String,
+    pub album: String,
+    pub album_artist: String,
+    pub type_of_artist: TypeOfArtis,
 }
 
+#[derive(Clone)]
 pub(crate) enum TypeOfArtis {
     Person,
     Group,
