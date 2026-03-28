@@ -1,0 +1,12 @@
+import { SongVizualizer } from "components/song_visualizer.slint";
+
+export component AppWindow inherits Window {
+    width: 500px;
+    height: 500px;
+
+    SongVizualizer {
+        song_img: @image-url("/home/jesus-figueroa/Imágenes/plbyb.jpg");
+        song_name: "Tres Trokas";
+        song_performer: "Fuerza Regida";
+    }
+}
