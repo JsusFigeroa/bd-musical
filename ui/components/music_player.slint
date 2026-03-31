@@ -1,0 +1,147 @@
+import { Slider } from "std-widgets.slint";
+import { InteractionButtons } from "./interaction_buttons.slint";
+import { VolumeVisualizer } from "./volume_visualizer.slint";
+export component MusicPlayer inherits Rectangle {
+    in property <image> song_image;
+    in property <string> song_name;
+    in property <string> song_album_name;
+    in property <string> song_artist;
+    in property <float> song_duration;
+    in-out property <float> actual_song_reproduction_time;
+    height: 100%;
+    width: 100%;
+    background: #34312D;
+    VerticalLayout {
+        padding: parent.height * 0.02;
+        spacing: parent.height * 0.05;
+        height: 100%;
+        width: 100%;
+        VerticalLayout {
+            spacing: root.height * 0.05;
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    border-radius: 10px;
+                    clip: true;
+                    width: root.width * 0.80;
+                    height: self.width;
+                    Image {
+                        height: parent.height;
+                        width: parent.width;
+                        source: song_image;
+                        image-fit: contain;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                VerticalLayout {
+                    spacing: root.height * 0.025;
+                    Text {
+                        text: root.song_name;
+                        color: #F5F0E8;
+                        font-size: clamp(16px, root.height * 0.04, 36px);
+                        horizontal-alignment: center;
+                    }
+
+                    Text {
+                        text: root.song_album_name;
+                        horizontal-alignment: center;
+                        color: #C9A96E;
+                        font-size: clamp(14px, root.height * 0.025, 32px);
+                    }
+
+                    Text {
+                        text: root.song_artist;
+                        horizontal-alignment: center;
+                        color: #B8B0A4;
+                        font-size: clamp(12px, root.height * 0.02, 28px);
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            Slider {
+                minimum: 0.0;
+                maximum: root.song_duration;
+                value: root.actual_song_reproduction_time;
+                changed(new_time) => {
+                    root.actual_song_reproduction_time = new_time;
+      //Añadir funcionalidad para adelantar el timpo.
+            }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                padding: root.width * 0.02;
+                spacing: root.width * 0.04;
+                VerticalLayout {
+                    alignment: center;
+                    InteractionButtons {
+                        icon: @image-url("../../assets/shuffle.svg");
+                        size: clamp(24px, root.height * 0.05, 80px);
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    InteractionButtons {
+                        icon: @image-url("../../assets/skip-back.svg");
+
+                        size: clamp(24px, root.height * 0.08, 100px);
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    InteractionButtons {
+                        icon: @image-url("../../assets/play-bold.svg");
+                        size: clamp(24px, root.height * 0.1, 120px);
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    InteractionButtons {
+                        icon: @image-url("../../assets/skip-forward.svg");
+                        size: clamp(24px, root.height * 0.08, 100px);
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    InteractionButtons {
+                        icon: @image-url("../../assets/repeat.svg");
+                        size: clamp(20px, root.height * 0.05, 80px);
+                    }
+                }
+            }
+        }
+
+        // Rectangle {
+        //     vertical-stretch: 0.4;
+        // }
+
+        HorizontalLayout {
+            height: root.height * 0.04;
+            alignment: center;
+            padding: root.width * 0.01;
+            spacing: root.width * 0.02;
+            Image {
+                width: root.width * 0.10;
+                height: 100%;
+                source: @image-url("../../assets/speaker-simple-high.svg");
+                colorize: white;
+            }
+
+            VerticalLayout {
+                alignment: center;
+                VolumeVisualizer {
+                    height_lenght: parent.height * 0.25;
+                }
+            }
+        }
+    }
+}

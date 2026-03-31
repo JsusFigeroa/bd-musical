@@ -1,0 +1,18 @@
+export component InteractionButtons inherits Rectangle {
+    in property <image> icon;
+    property <color> color_hover: #C9A96E;
+    in property <length> size;
+    width: size;
+    height: size;
+
+    Image {
+        source: icon;
+        width: 0.55 * root.width;
+        height: 0.55 * root.height;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        colorize: interaction.has-hover ? color_hover : white;
+    }
+
+    interaction := TouchArea { }
+}

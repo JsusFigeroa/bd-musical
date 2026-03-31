@@ -1,12 +1,28 @@
 import { SongVizualizer } from "components/song_visualizer.slint";
+import { InteractionButtons } from "components/interaction_buttons.slint";
+import { VolumeVisualizer } from "components/volume_visualizer.slint";
+import { MusicPlayer } from "components/music_player.slint";
 
 export component AppWindow inherits Window {
     width: 500px;
-    height: 500px;
+    height: 400px;
 
-    SongVizualizer {
-        song_img: @image-url("/home/jesus-figueroa/Imágenes/plbyb.jpg");
-        song_name: "Tres Trokas";
-        song_performer: "Fuerza Regida";
+    // SongVizualizer {
+    //     song_img: @image-url("/home/jesus-figueroa/Imágenes/plbyb.jpg");
+    //     song_name: "Tres Trokas";
+    //     song_performer: "Fuerza Regida";
+    // }
+Rectangle {
+        width: self.height * 9 / 16;
+        height: parent.height;
+
+        MusicPlayer {
+            song_name: "3 trokas";
+            song_album_name: "Pa' las babys y belikeada";
+            song_artist: "Fuerza Regida";
+            song_duration: 3.14;
+            actual_song_reproduction_time: 2.16;
+            song_image: @image-url("../assets/Pa_Las_Baby's_Y_Belikeada.jpg");
+        }
     }
 }
