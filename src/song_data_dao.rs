@@ -43,6 +43,7 @@ impl SongDataDao {
     }
     pub(crate) fn new_in_memory() -> Result<SongDataDao, ()> {
         let db = Connection::open_in_memory().map_err(|_| ())?;
+        db.execute_batch(BD_STRUCTURE).unwrap();
         Ok(SongDataDao { data_base: db })
     }
     pub(crate) fn insert_songs(&self, songs_data: Vec<SongData>) -> Result<(), ()> {
@@ -86,7 +87,7 @@ impl SongDataDao {
             .expect("Error en la syntaxis del código sql");
         for song in songs_data {
             let opt_id_performer: Option<i64> = stmt_get_id_performer
-                .query_row(params![song.album_artist], |row| row.get(0))
+                .query_row(params![song.performer], |row| row.get(0))
                 .optional()
                 .map_err(|_| ())?;
             let id_performer = match opt_id_performer {
@@ -98,7 +99,7 @@ impl SongDataDao {
                         TypeOfArtis::Unknown => 2,
                     };
                     stmt_insert_performer
-                        .execute(params![type_id, song.album_artist])
+                        .execute(params![type_id, song.performer])
                         .map_err(|_| ())?;
                     self.data_base.last_insert_rowid()
                 }
@@ -106,13 +107,13 @@ impl SongDataDao {
             match song.type_of_artist {
                 TypeOfArtis::Person => {
                     let opt_person_id: Option<i64> = stmt_get_id_person
-                        .query_row(params![song.album_artist], |row| row.get(0))
+                        .query_row(params![song.performer], |row| row.get(0))
                         .optional()
                         .map_err(|_| ())?;
                     if opt_person_id.is_none() {
                         stmt_insert_person
                             .execute(params![
-                                song.album_artist,
+                                song.performer,
                                 "Unknown",
                                 "01/01/0000",
                                 "02/01/0000"
@@ -122,12 +123,12 @@ impl SongDataDao {
                 }
                 TypeOfArtis::Group => {
                     let opt_group_id: Option<i64> = stmt_get_id_group
-                        .query_row(params![song.album_artist], |row| row.get(0))
+                        .query_row(params![song.performer], |row| row.get(0))
                         .optional()
                         .map_err(|_| ())?;
                     if opt_group_id.is_none() {
                         stmt_insert_group
-                            .execute(params![song.album_artist, "01/01/0000", "02/01/0000"])
+                            .execute(params![song.performer, "01/01/0000", "02/01/0000"])
                             .map_err(|_| ())?;
                     }
                 }
@@ -188,4 +189,111 @@ fn db_structure_is_expected(db: &Connection) -> Result<bool, ()> {
         return Ok(true);
     }
     Ok(false)
+}
+
+#[cfg(test)]
+mod test {
+    use core::panic;
+
+    use assert2::check;
+
+    use super::*;
+    fn generate_new_song_data(name: String, album_artist: String, album: String) -> SongData {
+        SongData::builder()
+            .album(album)
+            .title(name)
+            .genre("rock".to_string())
+            .path(".".to_string())
+            .type_of_artist(TypeOfArtis::Person)
+            .year(2003)
+            .performer(album_artist)
+            .num_track(0)
+            .build()
+    }
+    #[test]
+    fn test_insert_song() {
+        let new_song = generate_new_song_data(
+            "Jesus".to_string(),
+            "Jesus".to_string(),
+            "Jesus".to_string(),
+        );
+        let song_data_dao = SongDataDao::new_in_memory().unwrap();
+        let mut songs = Vec::new();
+        songs.push(new_song);
+        song_data_dao.insert_songs(songs).unwrap();
+        let mut stmt_get_performer = song_data_dao
+            .data_base
+            .prepare("SELECT name FROM performers WHERE id_performer = 1")
+            .expect("La sintaxis de SQL es incorrecta");
+        let name: String = stmt_get_performer.query_row([], |row| row.get(0)).unwrap();
+        check!(name == "Jesus".to_string());
+        let new_song_2 =
+            generate_new_song_data("Hola".to_string(), "Jesus".to_string(), "Jesus".to_string());
+        let mut songs = Vec::new();
+        songs.push(new_song_2);
+        song_data_dao.insert_songs(songs).unwrap();
+        let mut stmt_get_id_performer = song_data_dao
+            .data_base
+            .prepare("SELECT id_performer FROM rolas WHERE title=?1")
+            .unwrap();
+        let id_performer: i64 = stmt_get_id_performer
+            .query_row(params!["Hola"], |row| row.get(0))
+            .unwrap();
+        check!(id_performer == 1);
+        let new_song_3 = generate_new_song_data(
+            "3 Trokas".to_string(),
+            "Fuerza Regida".to_string(),
+            "Pa' las babys y belikeada".to_string(),
+        );
+        let mut songs = Vec::new();
+        songs.push(new_song_3);
+        song_data_dao.insert_songs(songs).unwrap();
+        let id_preformer_fr: i64 = stmt_get_id_performer
+            .query_row(params!["3 Trokas"], |row| row.get(0))
+            .unwrap();
+        check!(id_preformer_fr == 2);
+        let mut stmt_get_persons = song_data_dao
+            .data_base
+            .prepare("SELECT stage_name FROM persons")
+            .unwrap();
+        let persons: Result<Vec<String>, _> = stmt_get_persons
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect();
+        if let Ok(persons) = persons {
+            check!(persons[0] == "Jesus".to_string());
+            check!(persons[1] == "Fuerza Regida".to_string());
+        } else {
+            panic!();
+        }
+        let mut stmt_get_album = song_data_dao
+            .data_base
+            .prepare("SELECT name FROM albums")
+            .unwrap();
+        let albums: Result<Vec<String>, _> = stmt_get_album
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect();
+        if let Ok(albums) = albums {
+            check!(albums[0] == "Jesus".to_string());
+            check!(albums[1] == "Pa' las babys y belikeada".to_string());
+        } else {
+            panic!();
+        }
+        let mut stmt_get_id_performer = song_data_dao
+            .data_base
+            .prepare("SELECT id_performer FROM rolas")
+            .unwrap();
+        let ids_performers: Result<Vec<i64>, _> = stmt_get_id_performer
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect();
+        if let Ok(ids) = ids_performers {
+            check!(ids[0] == 1);
+            check!(ids[1] == 1);
+            check!(ids[2] == 2);
+        } else {
+            panic!();
+        }
+    }
 }
