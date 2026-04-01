@@ -48,7 +48,7 @@ pub(crate) fn mine_dir(dir: String) -> Vec<SongData> {
                 };
                 let new_song = SongData::builder()
                     .album(album)
-                    .album_artist(album_artist)
+                    .performer(album_artist)
                     .genre(genre)
                     .num_track(num_track)
                     .path(absolute_path)

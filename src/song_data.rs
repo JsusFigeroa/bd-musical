@@ -7,7 +7,7 @@ pub(crate) struct SongData {
     pub year: i32,
     pub genre: String,
     pub album: String,
-    pub album_artist: String,
+    pub performer: String,
     pub type_of_artist: TypeOfArtis,
 }
 
