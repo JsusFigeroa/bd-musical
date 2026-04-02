@@ -1,0 +1,16 @@
+export component VolumeVisualizer inherits Rectangle {
+    in property <float> volume;
+    in property <length> height_lenght;
+    property <color> background_color: #C9A96E;
+    width: 80%;
+    height: height_lenght;
+    background: #ddd;
+    border-radius: 5px;
+    clip: true;
+    Rectangle {
+        x: 0;
+        width: parent.width * volume;
+        background: background_color;
+        height: parent.height;
+    }
+}

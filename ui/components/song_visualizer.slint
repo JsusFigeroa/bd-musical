@@ -1,0 +1,42 @@
+export component SongVizualizer inherits Window {
+    in property <image> song_img;
+    in property <string> song_name;
+    in property <string> song_performer;
+    width: 250px;
+    height: 300px;
+    background: gray;
+    VerticalLayout {
+        spacing: 30px;
+        padding: 20px;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 140px;
+                height: 140px;
+                border-radius: 15px;
+                clip: true;
+                Image {
+                    source: song_img;
+                    width: parent.width;
+                    height: parent.height;
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 6px;
+            alignment: start;
+            Text {
+                text: root.song_name;
+                font-size: 18px;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: root.song_performer;
+                font-size: 14px;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}
