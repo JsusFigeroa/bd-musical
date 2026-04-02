@@ -1,4 +1,7 @@
-use crate::song_data::{SongData, TypeOfArtis};
+use crate::{
+    rola::Rola,
+    song_data::{SongData, TypeOfArtis},
+};
 use rusqlite::{Connection, OptionalExtension, params};
 use std::path::Path;
 
@@ -87,33 +90,33 @@ impl SongDataDao {
             .expect("Error en la syntaxis del código sql");
         for song in songs_data {
             let opt_id_performer: Option<i64> = stmt_get_id_performer
-                .query_row(params![song.performer], |row| row.get(0))
+                .query_row(params![song.get_performer()], |row| row.get(0))
                 .optional()
                 .map_err(|_| ())?;
             let id_performer = match opt_id_performer {
                 Some(id) => id,
                 None => {
-                    let type_id = match song.type_of_artist {
+                    let type_id = match song.get_type_of_artist() {
                         TypeOfArtis::Person => 0,
                         TypeOfArtis::Group => 1,
                         TypeOfArtis::Unknown => 2,
                     };
                     stmt_insert_performer
-                        .execute(params![type_id, song.performer])
+                        .execute(params![type_id, song.get_performer()])
                         .map_err(|_| ())?;
                     self.data_base.last_insert_rowid()
                 }
             };
-            match song.type_of_artist {
+            match song.get_type_of_artist() {
                 TypeOfArtis::Person => {
                     let opt_person_id: Option<i64> = stmt_get_id_person
-                        .query_row(params![song.performer], |row| row.get(0))
+                        .query_row(params![song.get_performer()], |row| row.get(0))
                         .optional()
                         .map_err(|_| ())?;
                     if opt_person_id.is_none() {
                         stmt_insert_person
                             .execute(params![
-                                song.performer,
+                                song.get_performer(),
                                 "Unknown",
                                 "01/01/0000",
                                 "02/01/0000"
@@ -123,35 +126,36 @@ impl SongDataDao {
                 }
                 TypeOfArtis::Group => {
                     let opt_group_id: Option<i64> = stmt_get_id_group
-                        .query_row(params![song.performer], |row| row.get(0))
+                        .query_row(params![song.get_performer()], |row| row.get(0))
                         .optional()
                         .map_err(|_| ())?;
                     if opt_group_id.is_none() {
                         stmt_insert_group
-                            .execute(params![song.performer, "01/01/0000", "02/01/0000"])
+                            .execute(params![song.get_performer(), "01/01/0000", "02/01/0000"])
                             .map_err(|_| ())?;
                     }
                 }
                 _ => {}
             }
             let opt_album_id: Option<i64> = stmt_get_album_id
-                .query_row(params![song.album], |row| row.get(0))
+                .query_row(params![song.get_album()], |row| row.get(0))
                 .optional()
                 .map_err(|_| ())?;
             let id_album = match opt_album_id {
                 Some(id) => id,
                 None => {
-                    let path = Path::new(&song.path).parent().unwrap();
+                    let path_str = song.get_path();
+                    let path = Path::new(&path_str).parent().unwrap();
                     let path_to_str = path.to_str().unwrap();
                     stmt_insert_album
-                        .execute(params![path_to_str, song.album, song.year])
+                        .execute(params![path_to_str, song.get_album(), song.get_year()])
                         .map_err(|_| ())?;
                     self.data_base.last_insert_rowid()
                 }
             };
             let existe_rola: bool = stmt_existe_rola
                 .query_row(
-                    params![id_performer, id_album, song.title, song.year],
+                    params![id_performer, id_album, song.get_title(), song.get_year()],
                     |row| row.get(0),
                 )
                 .map_err(|_| ())?;
@@ -160,16 +164,59 @@ impl SongDataDao {
                     .execute(params![
                         id_performer,
                         id_album,
-                        song.path,
-                        song.title,
-                        song.num_track,
-                        song.year,
-                        song.genre
+                        song.get_path(),
+                        song.get_title(),
+                        song.get_num_track(),
+                        song.get_year(),
+                        song.get_genre()
                     ])
                     .map_err(|_| ())?;
             }
         }
         Ok(())
+    }
+
+    fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
+        let mut stmt_get_rolas = self
+            .data_base
+            .prepare("SELECT id_rola, id_performer, id_album, path, title, genre FROM rolas")
+            .expect("Error en sintaxis de sql");
+        let rolas_iter = stmt_get_rolas
+            .query_map([], |row| {
+                let id_rola: i64 = row.get(0).unwrap();
+                let id_performer: i64 = row.get(1).unwrap();
+                let id_album: i64 = row.get(2).unwrap();
+                let path: String = row.get(3).unwrap();
+                let title: String = row.get(4).unwrap();
+                let genre: String = row.get(5).unwrap();
+                Ok((id_rola, id_performer, id_album, path, title, genre))
+            })?
+            .flatten();
+        let mut rolas = Vec::new();
+        let mut stmt_get_album_name = self
+            .data_base
+            .prepare("SELECT name FROM albums WHERE id_album = ?1")
+            .expect("Error en sintaxis de sql");
+        let mut stmt_get_performer_name = self
+            .data_base
+            .prepare("SELECT name FROM performers WHERE id_performer = ?1")
+            .expect("Error en sintaxis de sql");
+        for (id_rola, id_performer, id_album, path, title, genre) in rolas_iter {
+            let performer: String =
+                stmt_get_performer_name.query_row(params![id_performer], |row| row.get(0))?;
+            let album_name: String =
+                stmt_get_album_name.query_row(params![id_album], |row| row.get(0))?;
+            let new_rola = Rola::builder()
+                .album(album_name)
+                .performer(performer)
+                .path(path)
+                .title(title)
+                .id_rola(id_rola)
+                .genre(genre)
+                .build();
+            rolas.push(new_rola);
+        }
+        Ok(rolas)
     }
 }
 
@@ -295,5 +342,42 @@ mod test {
         } else {
             panic!();
         }
+    }
+    #[test]
+    fn test_get_rolas() {
+        let song_data_1 = generate_new_song_data(
+            "Tres Trokas".to_string(),
+            "Fuerza Regida".to_string(),
+            "Pa' las babys y belikeada".to_string(),
+        );
+        let song_data_2 = generate_new_song_data(
+            "Brillarosa".to_string(),
+            "Fuerza Regida".to_string(),
+            "Dolido pero no arrepentido".to_string(),
+        );
+        let song_data_3 = generate_new_song_data(
+            "Corazón partido".to_string(),
+            "Bogueto".to_string(),
+            "Esto si es de gangsters".to_string(),
+        );
+        let song_data_dao = SongDataDao::new_in_memory().unwrap();
+        let mut songs_data = Vec::new();
+        songs_data.push(song_data_1);
+        songs_data.push(song_data_2);
+        songs_data.push(song_data_3);
+        song_data_dao.insert_songs(songs_data).unwrap();
+        let rolas = song_data_dao.get_rolas().unwrap();
+        check!(rolas[0].get_id_rola() == 1);
+        check!(rolas[0].get_title() == "Tres Trokas".to_string());
+        check!(rolas[0].get_performer() == "Fuerza Regida".to_string());
+        check!(rolas[0].get_album() == "Pa' las babys y belikeada".to_string());
+        check!(rolas[1].get_id_rola() == 2);
+        check!(rolas[1].get_title() == "Brillarosa".to_string());
+        check!(rolas[1].get_performer() == "Fuerza Regida".to_string());
+        check!(rolas[1].get_album() == "Dolido pero no arrepentido".to_string());
+        check!(rolas[2].get_id_rola() == 3);
+        check!(rolas[2].get_title() == "Corazón partido".to_string());
+        check!(rolas[2].get_performer() == "Bogueto".to_string());
+        check!(rolas[2].get_album() == "Esto si es de gangsters".to_string());
     }
 }

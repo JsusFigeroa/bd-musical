@@ -99,11 +99,12 @@ mod test {
         tag.write_to_path(&file_path, Version::Id3v24).unwrap();
         let songs = mine_dir(temp_dir.path().to_str().unwrap().to_string());
         let song = songs[0].clone();
-        println!("La ruta de la canción es {}", song.path.to_string());
-        let song_path = Path::new(&song.path);
+        println!("La ruta de la canción es {}", song.get_path().to_string());
+        let song_path_str = song.get_path();
+        let song_path = Path::new(&song_path_str);
         check!(song_path.is_absolute());
-        check!(song.title == "Una canción triste".to_string());
-        check!(song.year == 2013);
-        check!(song.album == "Album triste".to_string());
+        check!(song.get_title() == "Una canción triste".to_string());
+        check!(song.get_year() == 2013);
+        check!(song.get_album() == "Album triste".to_string());
     }
 }
