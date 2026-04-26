@@ -23,6 +23,7 @@ pub(crate) struct SongDataDao {
 }
 
 impl SongDataDao {
+    //Esto da error si no se tiene acceso a la dirección de la base de datos.
     pub(crate) fn new(path: String) -> Result<SongDataDao, ()> {
         let path = Path::new(&path);
         let data_base_connection = Connection::open(path).map_err(|_| ())?;
@@ -57,7 +58,7 @@ impl SongDataDao {
         let mut stmt_insert_performer = self
             .data_base
             .prepare("INSERT INTO performers (id_type, name) VALUES (?1, ?2)")
-            .expect("Error en la syntacis del código sql");
+            .expect("Error en la sintaxis del código sql");
         let mut stmt_get_id_person = self
             .data_base
             .prepare("SELECT id_person FROM persons WHERE stage_name=?1")
@@ -176,7 +177,7 @@ impl SongDataDao {
         Ok(())
     }
 
-    fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
+    pub(crate) fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
         let mut stmt_get_rolas = self
             .data_base
             .prepare("SELECT id_rola, id_performer, id_album, path, title, genre FROM rolas")

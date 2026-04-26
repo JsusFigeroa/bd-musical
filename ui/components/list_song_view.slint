@@ -1,5 +1,5 @@
 import { ListView } from "std-widgets.slint";
-export struct SongDatafListView {
+export struct SongDataView {
   name: string,
   album: string,
   performer: string,
@@ -7,7 +7,7 @@ export struct SongDatafListView {
 }
 
 export component ListSongView inherits Rectangle {
-    property <[SongDatafListView]> SongList: [
+    in property <[SongDataView]> SongList: [
         {
             name: "3 trokas",
             album: "Pa' las babys y belikeada",
