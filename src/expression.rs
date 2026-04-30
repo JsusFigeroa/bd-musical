@@ -51,6 +51,18 @@ impl Expr {
             }
         }
     }
+
+    pub(crate) fn process_str(str: &str) -> Result<Expr, String> {
+        let parse_result = SerchParser::parse(Rule::search, str);
+        match parse_result {
+            Ok(mut pairs) => {
+                let main_pair = pairs.next().unwrap();
+                let ast = Expr::make_ast(main_pair);
+                Ok(ast)
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    }
 }
 #[derive(Parser)]
 #[grammar = "syntax.pest"]
