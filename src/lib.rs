@@ -1,4 +1,5 @@
 pub(crate) mod controller;
+pub(crate) mod expression;
 pub(crate) mod miner;
 pub(crate) mod rola;
 pub(crate) mod song_data;

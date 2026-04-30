@@ -1,0 +1,14 @@
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+identifier = { (ASCII_ALPHANUMERIC | "ñ" | "Ñ")+ }
+value = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+condition = { identifier ~ ":" ~ value }
+
+op_and = { "&" }
+op_or = { "|"}
+op_not = { "!"}
+
+nuclear = _{ condition | "(" ~ expression ~ ")" }
+expression = { term ~ (op_or ~ term)* }
+term = { factor ~ (op_and ~ factor)*}
+factor = { op_not? ~ nuclear}
+search = _{ SOI ~ expression ~ EOI }
