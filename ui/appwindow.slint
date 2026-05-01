@@ -16,31 +16,13 @@ export component AppWindow inherits Window {
     //     song_name: "Tres Trokas";
     //     song_performer: "Fuerza Regida";
     // }
+ListSongView {
 
-
-        Rectangle {
-        x: 0;
-        width: root.width - (root.height * 0.5);
-        ListSongView { }
-    }
-
-    Rectangle {
-        background: #ddd;
-        x: root.width - (root.height * 0.5);
-        width: 1px;
-    }
-
-    Rectangle {
-        x: root.width - (root.height * 0.5) + 1px;
-        width: root.height * 0.5;
-
-        MusicPlayer {
-            song_name: "3 trokas";
-            song_album_name: "Pa' las babys y belikeada";
-            song_artist: "Fuerza Regida";
-            song_duration: 3.14;
-            actual_song_reproduction_time: 2.16;
-            song_image: @image-url("../assets/Pa_Las_Baby's_Y_Belikeada.jpg");
+        search(texto) => {
+        }
+        update_person_data(id, nombre, nacimiento, muerte) => {
+        }
+        add_group_member(id, nombre, nacimiento, muerte) => {
         }
     }
 }

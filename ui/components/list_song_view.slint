@@ -1,163 +1,371 @@
 import { ListView } from "std-widgets.slint";
-export struct SongDatafListView {
+import {
+    LineEdit,
+    Button,
+    ComboBox,
+    ScrollView,
+} from "std-widgets.slint";
+export struct SongDataView {
+  artist_type_id: int,
+  song_id: int,
   name: string,
   album: string,
   performer: string,
   genre: string,
+  cover: image,
 }
 
 export component ListSongView inherits Rectangle {
-    property <[SongDatafListView]> SongList: [
+    property <[SongDataView]> SongList: [
         {
+            song_id: 1,
             name: "3 trokas",
             album: "Pa' las babys y belikeada",
             performer: "Fuerza Regida",
-            genre: "Corridos Tumbados"
+            genre: "Corridos Tumbados",
+            cover: @image-url(""),
+            artist_type_id: 1
         },
         {
+            song_id: 2,
             name: "LADY GAGA",
             album: "GÉNESIS",
             performer: "Peso Pluma, Gabito Ballesteros, Junior H",
-            genre: "Corridos Tumbados"
+            genre: "Corridos Tumbados",
+            cover: @image-url(""),
+            artist_type_id: 0
         },
         {
+            song_id: 3,
             name: "Bohemian Rhapsody",
             album: "A Night at the Opera",
             performer: "Queen",
-            genre: "Rock"
+            genre: "Rock",
+            cover: @image-url(""),
+            artist_type_id: 1
         },
         {
+            song_id: 4,
             name: "El Azul",
             album: "Sencillo",
             performer: "Junior H, Peso Pluma",
-            genre: "Regional Mexicano"
-        },
-        {
-            name: "Blinding Lights",
-            album: "After Hours",
-            performer: "The Weeknd",
-            genre: "Synth-pop"
-        },
-        {
-            name: "La Chona",
-            album: "Con un Mismo Corazón",
-            performer: "Los Tucanes de Tijuana",
-            genre: "Norteño"
-        },
-        {
-            name: "Master of Puppets",
-            album: "Master of Puppets",
-            performer: "Metallica",
-            genre: "Thrash Metal"
+            genre: "Regional Mexicano",
+            cover: @image-url(""),
+            artist_type_id: 0
         }
     ];
     width: 100%;
     height: 100%;
     background: #34312D;
-    VerticalLayout {
-        padding-top: root.height * 0.02;
-        padding-bottom: root.height * 0.02;
+    property <bool> is_gird_view: false;
+    property <length> item_lenght: 220px;
+    property <length> item_height: 260px;
+    property <int> cols: Math.max(1, Math.round(root.width / 220px));
+    property <int> editing_song_id: 0;
+    property <int> editing_song_artist_type: 0;
+    property <string> form_name: "";
+    property <string> form_birth: "";
+    property <string> form_death: "";
+    callback search(string);
+    callback update_person_data(int, string, string, string);
+    callback add_group_member(int, string, string, string);
+
+    edit_popup := PopupWindow {
+        width: 380px;
+        height: 220px;
+        x: (root.width - 380px) / 2;
+        y: (root.height - 220px) / 2;
         Rectangle {
-            width: 100%;
-            height: 3%;
-
-            HorizontalLayout {
-                spacing: root.width * 0.008;
-                padding-left: root.width * 0.01;
+            background: #2b2a27;
+            border-color: #C9A96E;
+            border-width: 1px;
+            border-radius: 8px;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 15px;
                 Text {
-                    width: 25%;
-                    horizontal-alignment: left;
-                    vertical-alignment: center;
-                    color: white;
-                    text: "Title";
+                    text: editing_song_artist_type == 0 ? "Información del artista" : "Añadir integrante al grupo";
+                    color: #C9A96E;
+                    font-size: 16px;
+                    horizontal-alignment: center;
+                    font-weight: 700;
                 }
 
-                Text {
-                    width: 25%;
-                    horizontal-alignment: left;
-                    vertical-alignment: center;
-                    color: white;
-                    text: "Performer";
+                person_layout := VerticalLayout {
+                    visible: root.editing_song_artist_type == 0;
+                    spacing: 10px;
+                    real_name_imput := LineEdit {
+                        placeholder-text: "Nombre real";
+                        text <=> root.form_name;
+                    }
+
+                    person_birth_imput := LineEdit {
+                        placeholder-text: "Fecha de nacimiento (dd/mm/aa)";
+                        text <=> root.form_birth;
+                    }
+
+                    person_death_imput := LineEdit {
+                        placeholder-text: "Fecha de fallecimiento (dd/mm/aa) (opcional)";
+                        text <=> root.form_death;
+                    }
                 }
 
-                Text {
-                    width: 25%;
-                    vertical-alignment: center;
-                    horizontal-alignment: left;
-                    color: white;
-                    text: "Album";
+                group_layout := VerticalLayout {
+                    visible: root.editing_song_artist_type == 1;
+                    spacing: 10px;
+                    artist_name_imput := LineEdit {
+                        placeholder-text: "Nombre del integrante";
+                        text <=> root.form_name;
+                    }
+
+                    artist_birth_imput := LineEdit {
+                        placeholder-text: "Fecha de nacimiento (dd/mm/aa)";
+                        text <=> root.form_birth;
+                    }
+
+                    artist_death_imput := LineEdit {
+                        placeholder-text: "Fecha de fallecimiento (dd/mm/aa) (opcional)";
+                        text <=> root.form_death;
+                    }
                 }
 
-                Text {
-                    width: 25%;
-                    vertical-alignment: center;
-                    horizontal-alignment: left;
-                    color: white;
-                    text: "Genre";
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+
+                HorizontalLayout {
+                    spacing: 15px;
+                    alignment: center;
+                    Button {
+                        text: "Guardar";
+                        clicked => {
+                            if (root.editing_song_artist_type == 0) {
+                                root.update_person_data(root.editing_song_id, root.form_name, root.form_birth, root.form_death);
+                            }
+                            if (root.editing_song_artist_type == 1) {
+                                root.add_group_member(root.editing_song_id, root.form_name, root.form_birth, root.form_death);
+                            }
+                            root.form_name = "";
+                            root.form_birth = "";
+                            root.form_death = "";
+                            edit_popup.close();
+                        }
+                    }
+
+                    Button {
+                        text: "Cancelar";
+                        clicked => {
+                            root.form_name = "";
+                            root.form_birth = "";
+                            root.form_death = "";
+                            edit_popup.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    VerticalLayout {
+        padding: root.height * 0.02;
+        spacing: 15px;
+
+        HorizontalLayout {
+            height: 35px;
+            spacing: 15px;
+            search_input := LineEdit {
+                placeholder-text: "Buscar";
+                width: 50%;
+            }
+
+            Button {
+                text: "Buscar";
+                clicked => {
+                    root.search(search_input.text);
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            Button {
+                text: root.is_gird_view ? "Lista" : "Cuadrícula";
+                clicked => {
+                    root.is_gird_view = !root.is_gird_view;
                 }
             }
         }
 
         Rectangle {
-            width: root.width;
+            width: 100%;
             height: 1px;
             background: #ddd;
         }
 
-        ListView {
-            for song in SongList: VerticalLayout {
-                Rectangle {
-                    interaction := TouchArea { }
+        if (root.is_gird_view): ScrollView {
+            viewport-height: ((root.SongList.length + root.cols - 1) / root.cols) * 260px;
+            canvas := Rectangle {
+                width: 100%;
+                height: parent.viewport-height;
 
-                    background: interaction.has-hover ? #C9A96E : #0000;
-                    width: 100%;
-                    height: root.height * 0.05;
-                    HorizontalLayout {
-                        spacing: root.width * 0.008;
-                        padding-left: root.width * 0.01;
-                        padding-right: root.width * 0.01;
-                        Text {
-                            overflow: elide;
-                            width: 25%;
-                            horizontal-alignment: left;
-                            vertical-alignment: center;
-                            color: #ddd;
-                            text: song.name;
+                for song[index] in root.SongList: Rectangle {
+                    x: (index - (Math.floor(index / root.cols) * root.cols)) * 220px;
+                    y: Math.floor(index / root.cols) * 260px;
+                    width: 220px;
+                    height: 260px;
+
+                    Rectangle {
+                        width: 95%;
+                        height: 95%;
+                        background: touch_grid.has-hover ? #C9A96E.transparentize(0.8) : #3e3b38;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: touch_grid.has-hover ? #C9A96E : #0000;
+                        touch_grid := TouchArea {
+                            pointer-event(event) => {
+                                if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
+                                    root.editing_song_id = song.song_id;
+                                    root.editing_song_artist_type = song.artist_type_id;
+                                    edit_popup.show();
+                                }
+                            }
                         }
 
-                        Text {
-                            overflow: elide;
-                            width: 25%;
-                            horizontal-alignment: left;
-                            vertical-alignment: center;
-                            color: #ddd;
-                            text: song.performer;
-                        }
+                        VerticalLayout {
+                            padding: 10px;
+                            spacing: 8px;
+                            alignment: center;
+                            Image {
+                                source: song.cover;
+                                width: 120px;
+                                height: 120px;
+                                image-fit: contain;
+                            }
 
-                        Text {
-                            overflow: elide;
-                            width: 25%;
-                            vertical-alignment: center;
-                            horizontal-alignment: left;
-                            color: #ddd;
-                            text: song.album;
-                        }
+                            Text {
+                                text: song.name;
+                                color: #ddd;
+                                font-size: 14px;
+                                horizontal-alignment: center;
+                                overflow: elide;
+                            }
 
-                        Text {
-                            overflow: elide;
-                            width: 25%;
-                            vertical-alignment: center;
-                            horizontal-alignment: left;
-                            color: #ddd;
-                            text: song.genre;
+                            Text {
+                                text: song.performer;
+                                color: #C9A96E;
+                                font-size: 12px;
+                                horizontal-alignment: center;
+                                overflow: elide;
+                            }
                         }
                     }
                 }
+            }
+        }
 
-                Rectangle {
-                    width: 100%;
-                    height: 1px;
-                    background: #C9A96E;
+        if (!root.is_gird_view): VerticalLayout {
+            Rectangle {
+                width: 100%;
+                height: 30px;
+                HorizontalLayout {
+                    spacing: root.width * 0.008;
+                    padding-left: root.width * 0.01;
+                    Text {
+                        width: 25%;
+                        color: white;
+                        text: "Title";
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        width: 25%;
+                        color: white;
+                        text: "Performer";
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        width: 25%;
+                        color: white;
+                        text: "Album";
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        width: 25%;
+                        color: white;
+                        text: "Genre";
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 100%;
+                height: 1px;
+                background: #ddd;
+            }
+
+            ListView {
+                for song in root.SongList: VerticalLayout {
+                    Rectangle {
+                        interaction := TouchArea {
+                            pointer-event(event) => {
+                                if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
+                                    root.editing_song_id = song.song_id;
+                                    root.editing_song_artist_type = song.artist_type_id;
+                                    edit_popup.show();
+                                }
+                            }
+                        }
+
+                        background: interaction.has-hover ? #C9A96E : #0000;
+                        width: 100%;
+                        height: 40px;
+                        HorizontalLayout {
+                            spacing: root.width * 0.008;
+                            padding-left: root.width * 0.01;
+                            padding-right: root.width * 0.01;
+                            Text {
+                                overflow: elide;
+                                width: 25%;
+                                color: #ddd;
+                                text: song.name;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                overflow: elide;
+                                width: 25%;
+                                color: #ddd;
+                                text: song.performer;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                overflow: elide;
+                                width: 25%;
+                                color: #ddd;
+                                text: song.album;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                overflow: elide;
+                                width: 25%;
+                                color: #ddd;
+                                text: song.genre;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 100%;
+                        height: 1px;
+                        background: #C9A96E;
+                    }
                 }
             }
         }
