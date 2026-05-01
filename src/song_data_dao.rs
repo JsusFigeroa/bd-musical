@@ -1,8 +1,10 @@
 use crate::{
-    rola::Rola,
+    expression::Expr,
+    rola::{self, Rola},
     song_data::{SongData, TypeOfArtis},
+    sql_query::SqlQuery,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
 use std::path::Path;
 
 const BD_STRUCTURE: &str = r#"
@@ -217,6 +219,35 @@ impl SongDataDao {
             rolas.push(new_rola);
         }
         Ok(rolas)
+    }
+    pub(crate) fn search_with_ast(&self, ast: Expr) -> Result<Vec<Rola>, String> {
+        let sql = SqlQuery::compile_to_sql(&ast)?;
+        let mut final_query = String::from(
+            "SELECT rolas.id_rola, rolas.title, performers.name as performer, albums.name as album, rolas.path, rolas.track, rolas.year, rolas.genre
+            FROM rolas
+            LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+            LEFT JOIN albums ON rolas.id_album = albums.id_album
+            WHERE "
+        );
+        final_query.push_str(&sql.query);
+        let mut stmt = self
+            .data_base
+            .prepare(&final_query)
+            .map_err(|e| e.to_string())?;
+        let songs_iter = stmt
+            .query_map(params_from_iter(sql.params), |row| {
+                Ok(Rola::builder()
+                    .title(row.get("title")?)
+                    .id_rola(row.get("id_rola")?)
+                    .performer(row.get("performer")?)
+                    .album(row.get("album")?)
+                    .genre(row.get("genre")?)
+                    .path(row.get("path")?)
+                    .build())
+            })
+            .map_err(|e| e.to_string())?;
+        let songs: Result<Vec<Rola>, _> = songs_iter.collect();
+        songs.map_err(|e| e.to_string())
     }
 }
 
