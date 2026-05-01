@@ -202,11 +202,15 @@ impl SongDataDao {
             .expect("Error en sintaxis de sql");
         let mut stmt_get_performer_name = self
             .data_base
-            .prepare("SELECT name FROM performers WHERE id_performer = ?1")
+            .prepare("SELECT name, id_type FROM performers WHERE id_performer = ?1")
             .expect("Error en sintaxis de sql");
         for (id_rola, id_performer, id_album, path, title, genre) in rolas_iter {
-            let performer: String =
-                stmt_get_performer_name.query_row(params![id_performer], |row| row.get(0))?;
+            let (performer, id_performer_type): (String, i64) =
+                stmt_get_performer_name.query_row(params![id_performer], |row| {
+                    let performer = row.get(0)?;
+                    let id_performer_type = row.get(1)?;
+                    Ok((performer, id_performer_type))
+                })?;
             let album_name: String =
                 stmt_get_album_name.query_row(params![id_album], |row| row.get(0))?;
             let new_rola = Rola::builder()
@@ -216,6 +220,8 @@ impl SongDataDao {
                 .title(title)
                 .id_rola(id_rola)
                 .genre(genre)
+                .id_performer(id_performer)
+                .id_perforfmer_type(id_performer_type)
                 .build();
             rolas.push(new_rola);
         }
@@ -224,7 +230,7 @@ impl SongDataDao {
     pub(crate) fn search_with_ast(&self, ast: Expr) -> Result<Vec<Rola>, String> {
         let sql = SqlQuery::compile_to_sql(&ast)?;
         let mut final_query = String::from(
-            "SELECT rolas.id_rola, rolas.title, performers.name as performer, albums.name as album, rolas.path, rolas.track, rolas.year, rolas.genre
+            "SELECT rolas.id_rola, rolas.title, rolas.id_performer, performers.id_type, performers.name as performer, albums.name as album, rolas.path, rolas.track, rolas.year, rolas.genre
             FROM rolas
             LEFT JOIN performers ON rolas.id_performer = performers.id_performer
             LEFT JOIN albums ON rolas.id_album = albums.id_album
@@ -244,6 +250,8 @@ impl SongDataDao {
                     .album(row.get("album")?)
                     .genre(row.get("genre")?)
                     .path(row.get("path")?)
+                    .id_perforfmer_type(row.get("id_type")?)
+                    .id_performer(row.get("id_performer")?)
                     .build())
             })
             .map_err(|e| e.to_string())?;
