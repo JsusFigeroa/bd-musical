@@ -533,6 +533,7 @@ dependencies = [
  "assert2",
  "bon",
  "id3",
+ "image",
  "pest",
  "pest_derive",
  "rusqlite",
