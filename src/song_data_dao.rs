@@ -1,6 +1,6 @@
 use crate::{
     expression::Expr,
-    rola::{self, Rola},
+    rola::Rola,
     song_data::{SongData, TypeOfArtis},
     sql_query::SqlQuery,
 };
@@ -47,7 +47,8 @@ impl SongDataDao {
         };
         Ok(new_song_dao)
     }
-    pub(crate) fn new_in_memory() -> Result<SongDataDao, ()> {
+    #[allow(dead_code)]
+    fn new_in_memory() -> Result<SongDataDao, ()> {
         let db = Connection::open_in_memory().map_err(|_| ())?;
         db.execute_batch(BD_STRUCTURE).unwrap();
         Ok(SongDataDao { data_base: db })

@@ -2,7 +2,7 @@ use bd_musical::AppWindow;
 use bd_musical::controller::{self, MusicDataController};
 use bd_musical::song_data_dao;
 use core::error;
-use slint::{ComponentHandle, SharedString};
+use slint::ComponentHandle;
 use std::rc::Rc;
 
 fn main() -> Result<(), Box<dyn error::Error>> {

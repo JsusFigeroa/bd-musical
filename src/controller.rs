@@ -3,10 +3,8 @@ use crate::SongDataView;
 use crate::miner;
 use crate::rola::Rola;
 use crate::{expression, song_data_dao::SongDataDao};
-use core::error;
 use id3::{Tag, frame::PictureType};
 use slint::{ComponentHandle, Image, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel, Weak};
-use std::path;
 use std::rc::Rc;
 use std::thread;
 
