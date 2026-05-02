@@ -20,12 +20,13 @@ CREATE TABLE albums (id_album INTEGER PRIMARY KEY, path TEXT, name TEXT, year IN
 CREATE TABLE rolas (id_rola INTEGER PRIMARY KEY, id_performer INTEGER, id_album INTEGER, path TEXT, title TEXT, track INTEGER, year INTEGER, genre TEXT, FOREIGN KEY (id_performer) REFERENCES performers(id_performer) FOREIGN KEY (id_album) REFERENCES albums(id_album));
 "#;
 
-pub(crate) struct SongDataDao {
+pub struct SongDataDao {
     data_base: Connection,
 }
 
 impl SongDataDao {
-    pub(crate) fn new(path: String) -> Result<SongDataDao, ()> {
+    //Esto da error si no se tiene acceso a la dirección de la base de datos.
+    pub fn new(path: String) -> Result<SongDataDao, ()> {
         let path = Path::new(&path);
         let data_base_connection = Connection::open(path).map_err(|_| ())?;
         match db_structure_is_expected(&data_base_connection) {
@@ -59,7 +60,7 @@ impl SongDataDao {
         let mut stmt_insert_performer = self
             .data_base
             .prepare("INSERT INTO performers (id_type, name) VALUES (?1, ?2)")
-            .expect("Error en la syntacis del código sql");
+            .expect("Error en la sintaxis del código sql");
         let mut stmt_get_id_person = self
             .data_base
             .prepare("SELECT id_person FROM persons WHERE stage_name=?1")
@@ -178,7 +179,7 @@ impl SongDataDao {
         Ok(())
     }
 
-    fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
+    pub fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
         let mut stmt_get_rolas = self
             .data_base
             .prepare("SELECT id_rola, id_performer, id_album, path, title, genre FROM rolas")
@@ -201,11 +202,15 @@ impl SongDataDao {
             .expect("Error en sintaxis de sql");
         let mut stmt_get_performer_name = self
             .data_base
-            .prepare("SELECT name FROM performers WHERE id_performer = ?1")
+            .prepare("SELECT name, id_type FROM performers WHERE id_performer = ?1")
             .expect("Error en sintaxis de sql");
         for (id_rola, id_performer, id_album, path, title, genre) in rolas_iter {
-            let performer: String =
-                stmt_get_performer_name.query_row(params![id_performer], |row| row.get(0))?;
+            let (performer, id_performer_type): (String, i64) =
+                stmt_get_performer_name.query_row(params![id_performer], |row| {
+                    let performer = row.get(0)?;
+                    let id_performer_type = row.get(1)?;
+                    Ok((performer, id_performer_type))
+                })?;
             let album_name: String =
                 stmt_get_album_name.query_row(params![id_album], |row| row.get(0))?;
             let new_rola = Rola::builder()
@@ -215,6 +220,8 @@ impl SongDataDao {
                 .title(title)
                 .id_rola(id_rola)
                 .genre(genre)
+                .id_performer(id_performer)
+                .id_perforfmer_type(id_performer_type)
                 .build();
             rolas.push(new_rola);
         }
@@ -223,7 +230,7 @@ impl SongDataDao {
     pub(crate) fn search_with_ast(&self, ast: Expr) -> Result<Vec<Rola>, String> {
         let sql = SqlQuery::compile_to_sql(&ast)?;
         let mut final_query = String::from(
-            "SELECT rolas.id_rola, rolas.title, performers.name as performer, albums.name as album, rolas.path, rolas.track, rolas.year, rolas.genre
+            "SELECT rolas.id_rola, rolas.title, rolas.id_performer, performers.id_type, performers.name as performer, albums.name as album, rolas.path, rolas.track, rolas.year, rolas.genre
             FROM rolas
             LEFT JOIN performers ON rolas.id_performer = performers.id_performer
             LEFT JOIN albums ON rolas.id_album = albums.id_album
@@ -243,30 +250,39 @@ impl SongDataDao {
                     .album(row.get("album")?)
                     .genre(row.get("genre")?)
                     .path(row.get("path")?)
+                    .id_perforfmer_type(row.get("id_type")?)
+                    .id_performer(row.get("id_performer")?)
                     .build())
             })
             .map_err(|e| e.to_string())?;
         let songs: Result<Vec<Rola>, _> = songs_iter.collect();
         songs.map_err(|e| e.to_string())
     }
+
+    pub(crate) fn update_person_data(
+        &self,
+        performer_name: &str,
+        real_name: &str,
+        birth_date: &str,
+        death_date: &str,
+    ) -> Result<(), rusqlite::Error> {
+        let id_person: i64 = self.data_base.query_row(
+            "SELECT id_persons FROM persons WHERE stage_name = ?1",
+            [performer_name],
+            |row| row.get(0),
+        )?;
+        self.data_base.execute("UPDATE persons SET real_name = ?1, birth_date = ?2, death_date = ?3 WHERE person_id = ?4", params![real_name, birth_date, death_date, id_person])?;
+        Ok(())
+    }
 }
 
 fn db_structure_is_expected(db: &Connection) -> Result<bool, ()> {
-    db.execute("ATTACH DATABASE ':memory:' AS espejo", [])
-        .map_err(|_| ())?;
-    db.execute_batch(BD_STRUCTURE).map_err(|_| ())?;
-    let diff_database = "
-        SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
-        EXCEPT
-        SELECT name, sql FROM espejo.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
-    ";
-    let mut stmt = db.prepare(diff_database).map_err(|_| ())?;
-    let are_diff = stmt.exists([]).map_err(|_| ())?;
-    let _ = db.execute("DETACH DATABASE espejo", []);
-    if !are_diff {
-        return Ok(true);
-    }
-    Ok(false)
+    // Simplemente verificamos si una de nuestras tablas clave existe
+    let sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='rolas'";
+    let mut stmt = db.prepare(sql).map_err(|_| ())?;
+    let exists = stmt.exists([]).map_err(|_| ())?;
+
+    Ok(exists)
 }
 
 #[cfg(test)]

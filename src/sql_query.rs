@@ -47,7 +47,7 @@ impl SqlQuery {
                 };
                 Ok(SqlQuery {
                     query: format!("{} = ?", row),
-                    params: vec![value.clone()],
+                    params: vec![value.to_string().clone()],
                 })
             }
         }

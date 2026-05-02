@@ -1,7 +1,8 @@
-pub(crate) mod controller;
-pub(crate) mod expression;
-pub(crate) mod miner;
-pub(crate) mod rola;
-pub(crate) mod song_data;
-pub(crate) mod song_data_dao;
-pub(crate) mod sql_query;
+pub mod controller;
+pub mod expression;
+pub mod miner;
+pub mod rola;
+pub mod song_data;
+pub mod song_data_dao;
+pub mod sql_query;
+slint::include_modules!();
