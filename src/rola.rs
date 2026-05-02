@@ -1,7 +1,7 @@
 use bon::Builder;
 
-#[derive(Builder)]
-pub(crate) struct Rola {
+#[derive(Builder, Debug)]
+pub struct Rola {
     id_rola: i64,
     id_performer: i64,
     id_perforfmer_type: i64,

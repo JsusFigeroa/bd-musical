@@ -62,13 +62,17 @@ export component ListSongView inherits Rectangle {
     property <length> item_lenght: 220px;
     property <length> item_height: 260px;
     property <int> cols: Math.max(1, Math.round(root.width / 220px));
+    property <string> editing_performer_name: "";
     property <int> editing_song_id: 0;
     property <int> editing_song_artist_type: 0;
     property <string> form_name: "";
     property <string> form_birth: "";
     property <string> form_death: "";
+    in property <string> mining_directory: "Carpeta a minar";
+    callback open_folder_dialog();
+    callback start_mining(string);
     callback search(string);
-    callback update_person_data(int, string, string, string);
+    callback update_person_data(string, string, string, string);
     callback add_group_member(int, string, string, string);
 
     edit_popup := PopupWindow {
@@ -141,7 +145,7 @@ export component ListSongView inherits Rectangle {
                         text: "Guardar";
                         clicked => {
                             if (root.editing_song_artist_type == 0) {
-                                root.update_person_data(root.editing_song_id, root.form_name, root.form_birth, root.form_death);
+                                root.update_person_data(root.editing_performer_name, root.form_name, root.form_birth, root.form_death);
                             }
                             if (root.editing_song_artist_type == 1) {
                                 root.add_group_member(root.editing_song_id, root.form_name, root.form_birth, root.form_death);
@@ -172,7 +176,7 @@ export component ListSongView inherits Rectangle {
         spacing: 15px;
 
         HorizontalLayout {
-            height: 35px;
+            height: 20px;
             spacing: 15px;
             search_input := LineEdit {
                 placeholder-text: "Buscar";
@@ -194,6 +198,36 @@ export component ListSongView inherits Rectangle {
                 text: root.is_gird_view ? "Lista" : "Cuadrícula";
                 clicked => {
                     root.is_gird_view = !root.is_gird_view;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 20px;
+            spacing: 15px;
+            LineEdit {
+                text: root.mining_directory;
+                read-only: true;
+                width: 400px;
+            }
+
+            Button {
+                text: "Examinar";
+                clicked => {
+                    root.open_folder_dialog();
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            Button {
+                text: "Iniciar";
+                clicked => {
+                    if (root.mining_directory != "Carpeta a minar" && root.mining_directory != "") {
+                        root.start_mining(root.mining_directory);
+                    }
                 }
             }
         }
@@ -228,6 +262,7 @@ export component ListSongView inherits Rectangle {
                                 if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
                                     root.editing_song_id = song.song_id;
                                     root.editing_song_artist_type = song.artist_type_id;
+                                    root.editing_performer_name = song.performer;
                                     edit_popup.show();
                                 }
                             }
@@ -316,6 +351,7 @@ export component ListSongView inherits Rectangle {
                                 if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
                                     root.editing_song_id = song.song_id;
                                     root.editing_song_artist_type = song.artist_type_id;
+                                    root.editing_performer_name = song.performer;
                                     edit_popup.show();
                                 }
                             }

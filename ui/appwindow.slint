@@ -10,19 +10,17 @@ export component AppWindow inherits Window {
 
     min-width: 800px;
     min-height: 480px;
-
+    callback open_folder_dialog <=> main_view.open_folder_dialog;
+    callback start_mining <=> main_view.start_mining;
+    callback search <=> main_view.search;
+    callback update_person_data <=> main_view.update_person_data;
+    callback add_group_member <=> main_view.add_group_member;
+    in property mining_directory <=> main_view.mining_directory;
+    in property song_list <=> main_view.SongList;
     // SongVizualizer {
     //     song_img: @image-url("/home/jesus-figueroa/Imágenes/plbyb.jpg");
     //     song_name: "Tres Trokas";
     //     song_performer: "Fuerza Regida";
     // }
-ListSongView {
-
-        search(texto) => {
-        }
-        update_person_data(id, nombre, nacimiento, muerte) => {
-        }
-        add_group_member(id, nombre, nacimiento, muerte) => {
-        }
-    }
+main_view := ListSongView { }
 }

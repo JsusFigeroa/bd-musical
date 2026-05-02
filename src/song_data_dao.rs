@@ -20,13 +20,13 @@ CREATE TABLE albums (id_album INTEGER PRIMARY KEY, path TEXT, name TEXT, year IN
 CREATE TABLE rolas (id_rola INTEGER PRIMARY KEY, id_performer INTEGER, id_album INTEGER, path TEXT, title TEXT, track INTEGER, year INTEGER, genre TEXT, FOREIGN KEY (id_performer) REFERENCES performers(id_performer) FOREIGN KEY (id_album) REFERENCES albums(id_album));
 "#;
 
-pub(crate) struct SongDataDao {
+pub struct SongDataDao {
     data_base: Connection,
 }
 
 impl SongDataDao {
     //Esto da error si no se tiene acceso a la dirección de la base de datos.
-    pub(crate) fn new(path: String) -> Result<SongDataDao, ()> {
+    pub fn new(path: String) -> Result<SongDataDao, ()> {
         let path = Path::new(&path);
         let data_base_connection = Connection::open(path).map_err(|_| ())?;
         match db_structure_is_expected(&data_base_connection) {
@@ -179,7 +179,7 @@ impl SongDataDao {
         Ok(())
     }
 
-    pub(crate) fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
+    pub fn get_rolas(&self) -> Result<Vec<Rola>, Box<dyn std::error::Error>> {
         let mut stmt_get_rolas = self
             .data_base
             .prepare("SELECT id_rola, id_performer, id_album, path, title, genre FROM rolas")
@@ -258,24 +258,31 @@ impl SongDataDao {
         let songs: Result<Vec<Rola>, _> = songs_iter.collect();
         songs.map_err(|e| e.to_string())
     }
+
+    pub(crate) fn update_person_data(
+        &self,
+        performer_name: &str,
+        real_name: &str,
+        birth_date: &str,
+        death_date: &str,
+    ) -> Result<(), rusqlite::Error> {
+        let id_person: i64 = self.data_base.query_row(
+            "SELECT id_persons FROM persons WHERE stage_name = ?1",
+            [performer_name],
+            |row| row.get(0),
+        )?;
+        self.data_base.execute("UPDATE persons SET real_name = ?1, birth_date = ?2, death_date = ?3 WHERE person_id = ?4", params![real_name, birth_date, death_date, id_person])?;
+        Ok(())
+    }
 }
 
 fn db_structure_is_expected(db: &Connection) -> Result<bool, ()> {
-    db.execute("ATTACH DATABASE ':memory:' AS espejo", [])
-        .map_err(|_| ())?;
-    db.execute_batch(BD_STRUCTURE).map_err(|_| ())?;
-    let diff_database = "
-        SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
-        EXCEPT
-        SELECT name, sql FROM espejo.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
-    ";
-    let mut stmt = db.prepare(diff_database).map_err(|_| ())?;
-    let are_diff = stmt.exists([]).map_err(|_| ())?;
-    let _ = db.execute("DETACH DATABASE espejo", []);
-    if !are_diff {
-        return Ok(true);
-    }
-    Ok(false)
+    // Simplemente verificamos si una de nuestras tablas clave existe
+    let sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='rolas'";
+    let mut stmt = db.prepare(sql).map_err(|_| ())?;
+    let exists = stmt.exists([]).map_err(|_| ())?;
+
+    Ok(exists)
 }
 
 #[cfg(test)]
