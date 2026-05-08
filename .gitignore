@@ -1,3 +1,9 @@
 /target
 bd.bd
 mi_base_de_datos.db
+reporte.fdb_latexmk
+reporte.fls 
+reporte.log
+reporte.out 
+reporte.synctex.gz
+reporte.aux
